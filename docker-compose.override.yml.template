@@ -1,0 +1,9 @@
+version: '3'
+services:
+
+  #PHP Service
+  back:
+    build:
+      context: ./apps/back/
+      args:
+        APP_ENV: ${APP_ENV}

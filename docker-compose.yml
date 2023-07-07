@@ -1,0 +1,72 @@
+version: '3'
+services:
+
+  #PHP Service
+  back:
+    environment:
+      APACHE_DOCUMENT_ROOT: 'public'
+      PHP_EXTENSION_XDEBUG: '0'
+      PHP_EXTENSION_GD: '1'
+      PHP_EXTENSION_ZIP: '1'
+      PHP_INI_MEMORY_LIMIT: '1G'
+    env_file:
+      - .env
+    working_dir: /var/www/html
+    volumes:
+      - ./apps/back:/var/www/html
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.web_router.rule=Host(`${HOST_URL}`)
+      - traefik.http.routers.web_router.entrypoints=web
+      - traefik.http.routers.web_router.service=web_service
+      - traefik.http.services.web_service.loadbalancer.server.port=80
+      - traefik.http.routers.vite_router.rule=Host(`${HOST_URL}`)
+      - traefik.http.routers.vite_router.entrypoints=vite
+      - traefik.http.routers.vite_router.service=vite_service
+      - traefik.http.services.vite_service.loadbalancer.server.port=5173
+
+  #REVERSE PROXY
+  traefik:
+    command:
+      - --providers.docker
+      - --providers.docker.exposedByDefault=false
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --entryPoints.web.address=:80
+      - --entryPoints.vite.address=:5173
+    image: traefik:2.9
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.traefik_dashboard_router.rule=Host(`traefik.$HOST_URL`)
+      - traefik.http.routers.traefik_dashboard_router.entrypoints=web
+      - traefik.http.routers.traefik_dashboard_router.service=traefik_dashboard_service
+      - traefik.http.services.traefik_dashboard_service.loadbalancer.server.port=8080
+    ports:
+      - '80:80'
+      - '443:443'
+      - '5173:5173'
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+
+  mysql:
+    image: mysql:5.7
+    volumes:
+      - mysql:/var/lib/mysql:rw
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+
+  phpmyadmin :
+    image: phpmyadmin/phpmyadmin
+    links:
+      - mysql:db
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.phpmyadmin.rule=Host(`pma.${HOST_URL}`)
+      - traefik.http.routers.phpmyadmin.entrypoints=web
+
+volumes:
+  mysql:
+    driver: "local"

@@ -1,0 +1,6 @@
+parameters:
+  checkMissingIterableValueType: false
+includes:
+    - vendor/nunomaduro/larastan/extension.neon
+    - vendor/thecodingmachine/phpstan-strict-rules/phpstan-strict-rules.neon
+    - vendor/thecodingmachine/phpstan-safe-rule/phpstan-safe-rule.neon
